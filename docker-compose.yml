@@ -1,0 +1,38 @@
+services:
+  db_mlflow:
+    image: postgres:15-alpine
+    container_name: mlflow_db
+    restart: no
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 20s        # Revisa cada 20 segundos en lugar de 5
+      timeout: 5s
+      retries: 3
+      start_period: 10s    # Le da 10 segundos de "gracia" al iniciar antes de empezar a checar
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow_yolox
+    user: "${UID}:${GID}"
+    restart: no
+    depends_on:
+      db_mlflow:
+        condition: service_healthy
+    ports:
+      - "${MLFLOW_PORT}:${MLFLOW_PORT}"
+    volumes:
+      - ${MLFLOW_DATA_DIR}:/mlflow
+    command: >
+      mlflow server
+      --backend-store-uri ${MLFLOW_DB}
+      --default-artifact-root ${MLFLOW_ARTIFACTS}
+      --artifacts-destination ${MLFLOW_ARTIFACTS}
+      --serve-artifacts
+      --host 0.0.0.0
+      --port ${MLFLOW_PORT}

@@ -1,0 +1,17 @@
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow_yolox
+    user: "${UID}:${GID}"
+    ports:
+      - "${MLFLOW_PORT}:${MLFLOW_PORT}"
+    volumes:
+      - ${MLFLOW_DATA_DIR}:/mlflow
+    command: >
+      mlflow server
+      --backend-store-uri ${MLFLOW_DB}
+      --default-artifact-root mlflow-artifacts:/
+      --artifacts-destination /mlflow/artifacts
+      --serve-artifacts
+      --host 0.0.0.0
+      --port ${MLFLOW_PORT}
